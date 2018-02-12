@@ -1,21 +1,42 @@
 <html>
-    <body>
+    <body onload="fetchGeoLocation()">
         <script>
+            //window.onload = function() {
+              //  fetchGeoLocation();                
+            //};
+            function fetchGeoLocation(){
+                var xmlHttpReq=new XMLHttpRequest();
+                xmlHttpReq.onreadystatechange = function() {
+                     if (this.readyState == 4 && this.status == 200) {
+                        document.getElementById("search").disabled = false;
+                        var jsonDoc = xmlHttpReq.responseText;                        
+                        var locationJson=JSON.parse(xmlHttpReq.responseText);
+                        console.log(locationJson);
+                    }
+                };
+                xmlHttpReq.open("GET","http://ip-api.com/json",true);
+                xmlHttpReq.send();
+                
+            }
             function enableLocationTxtBx(){
                 document.getElementById("locationTxt").disabled = false;
             }
             function disableLocationTxtBx(){
                 document.getElementById("locationTxt").disabled = true;
             }
+            function reset(){
+                document.getElementById("travelEntertainmentForm").reset(); 
+            }
         </script>
-        <?php echo $_POST["location"]; ?><br>
-        <?php echo $_POST["distance"]; ?>
-
-        <h1 style="text-align: center;"><i>Travel and Entertainment Search</i></h1>
+        <?php print_r($_POST); ?><br>
+        
+        <table border="10" style="   margin-left:  auto;    margin-right:  auto;">
+        <tr><td>
+        <h1 style="text-align: center;"><i>Travel and Entertainment Search</i></h1><hr>
         <form method="POST" action="T&E.php" name="travelEntertainmentForm">
-            <b>Keyword <input type="text"><br>
+            <b>Keyword <input required><br>
             Category 
-                <select>
+                <select name="category">
                     <!-- cafe,bakery, restaurant, beauty  salon, casino,  movie  theater,  lodging,  airport,  train  station,
                      subway  station,  bus  station -->
                     <option value="default">Default</option>
@@ -33,9 +54,11 @@
                 </select>    
             <br>
             Distance(miles) <input type="text" placeholder="10" name="distance"> from <input type="radio" name="location" value="here" checked onClick="disableLocationTxtBx()"> Here <br>
-            <input type="radio" name="location" style="margin-left: 302px;" onClick="enableLocationTxtBx()"> <input placeholder="location" name="location" id="locationTxt" disabled><br>
-            <input type="submit" value="Submit">
+            <input type="radio" name="location" style="margin-left: 303px;" onClick="enableLocationTxtBx()"> <input placeholder="location" name="location" id="locationTxt" disabled required><br>
+            <input type="submit" value="Search" id="search" disabled> 
+            <input type="button" value="Clear" onClick="reset()" >
         </form>
-     
+        </tr>
+        </table>
     </body>
 </html>
