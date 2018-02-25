@@ -57,7 +57,7 @@
     <body>
         <!-- PHP -->
         <!-- HTML Form -->    
-        <table border="10" style="   margin-left:  auto;    margin-right:  auto;">
+        <table border="10" style="   margin-left:  auto;    margin-right:  auto; width:45%">
         <tr><td>
         <h1 style="text-align: center;"><i>Travel and Entertainment Search</i></h1><hr>
         <form name="travelEntertainmentForm" onsubmit="submitForm()" method="post">
@@ -89,7 +89,8 @@
         </form>
         </tr>
         </table>
-             
+        <br>
+        <br>    
 
         <!-- Javascript -->
         <script>
@@ -117,8 +118,7 @@
                                 +"&keyword="+travelEntertainmentForm.keyword.value
                 xmlHttpReq.open("POST","T&E.php",true);
                 xmlHttpReq.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-                xmlHttpReq.send(queryStr);
-                
+                xmlHttpReq.send(queryStr);                
             }
             function fetchGeoLocation(){
                 var xmlHttpReq=new XMLHttpRequest();
@@ -145,8 +145,58 @@
             }
             function parseJSON(jsonDoc){
                 var jsonObj=JSON.parse(jsonDoc);
-                alert(jsonObj.results[0].name);
+                //alert(jsonObj.results[0].name);
+                var body=document.body;
+                var table=document.createElement("table");
+                table.style.border="1px solid black";
+                table.style.marginLeft="auto";
+                table.style.marginRight="auto";
+                table.style.width="60%";
+                //table rows
+                var row1=document.createElement("tr");
+                
+                var resultsArray=jsonObj.results;
+                if(resultsArray.length==0){
+                    row1.style.textAlign="center";
+                    row1col1=createCol("No records has been found","td"); 
+                    row1.appendChild(row1col1);
+                }
+                else{
+                    row1col1=createCol("Category","th");
+                    row1col2=createCol("Name","th");
+                    row1col3=createCol("Address","th");
+                    row1.appendChild(row1col1);row1.appendChild(row1col2);row1.appendChild(row1col3);                    
+                }
+                table.appendChild(row1);
+                for(var i=0;i<resultsArray.length;i++){
+                    //icon
+                    var col1=createCol("","td");
+                    var imgTag=document.createElement("img");
+					imgTag.setAttribute("src",resultsArray[i].icon);
+					col1.appendChild(imgTag);
+				    //name
+                    var col2=createCol("","td");	
+                    var anchorTag=document.createElement("a");
+					anchorTag.setAttribute("href","www.google.com");//call php
+					anchorTag.appendChild(document.createTextNode(resultsArray[i].name));
+                    col2.appendChild(anchorTag);
+                    //address
+					var col3=createCol(resultsArray[i].vicinity,"td");
+
+                    var row=document.createElement("tr");
+					row.appendChild(col1);row.appendChild(col2);
+					row.appendChild(col3)
+                    table.appendChild(row);
+                }
+                body.appendChild(table);
             }
+            function createCol(colText,rowType){
+				var col=document.createElement(rowType);
+				col.style.border="1px solid black";	
+				var text=document.createTextNode(colText);
+				col.appendChild(text);
+				return col;
+			}
         </script>
     </body>
 </html>
