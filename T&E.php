@@ -1,11 +1,66 @@
-<html>
-    <body onload="fetchGeoLocation()">
+<?php // print_r($_POST); ?>
+<?php 
+        if(isset($_POST['keyword'])){
+            //echo("hi");
+            //CONSTANST
+            define("GOOGLE_GEOCODING_API","https://maps.googleapis.com/maps/api/geocode/json?");
+            define("GOOGLE_KEY","AIzaSyDWBtO4XwwiZCwCDr6z2aK8rXZMuO0OTNM");
+            define("GOOGLE_NEARBY_SEARCH","https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
+            
+            function getGeoLocation(){
+                $query = http_build_query([
+                    'address' => $_POST["location"],
+                    'key' => GOOGLE_KEY,                    
+                   ]);
+                $arrContextOptions=array(
+                    "ssl"=>array(
+                        "verify_peer"=>false,
+                        "verify_peer_name"=>false,
+                    ),
+                );  
+                return file_get_contents(GOOGLE_GEOCODING_API.$query, false, stream_context_create($arrContextOptions));
+            }
 
+            function callGooglePlaces(){
+                $query = http_build_query([
+                    'location' => $_POST["latitude"].",".$_POST["longitude"],
+                    'radius' => $_POST["distance"]*1609.34,   //convert to meter from miles
+                    'type'=> $_POST["category"],
+                    'keyword'=>$_POST["keyword"],
+                    'key'=>GOOGLE_KEY,
+                   ]);
+                $arrContextOptions=array(
+                    "ssl"=>array(
+                        "verify_peer"=>false,
+                        "verify_peer_name"=>false,
+                    ),
+                );  
+                return file_get_contents(GOOGLE_NEARBY_SEARCH.$query, false, stream_context_create($arrContextOptions));
+            }
+                       
+            if(isset($_POST["location"]) && $_POST["location"]!="here"){
+                //get geolocation from google
+                $locationJson=json_decode(getGeoLocation(),true);
+                $_POST["latitude"]=($locationJson["results"][0]["geometry"]["location"]["lat"]);
+                $_POST["longitude"]=($locationJson["results"][0]["geometry"]["location"]["lng"]);
+            }            
+            
+            $googlePlacesResponse=(json_decode(callGooglePlaces()));
+            //print_r($googlePlacesResponse);
+            //$responseJSON=(callGooglePlaces());
+            header('Content-type: application/json');
+            echo json_encode(($googlePlacesResponse));     
+            exit();      
+        }
+?>
+<html>
+    <body>
+        <!-- PHP -->
         <!-- HTML Form -->    
         <table border="10" style="   margin-left:  auto;    margin-right:  auto;">
         <tr><td>
         <h1 style="text-align: center;"><i>Travel and Entertainment Search</i></h1><hr>
-        <form method="POST" action="T&E.php" name="travelEntertainmentForm">
+        <form name="travelEntertainmentForm" onsubmit="submitForm()" method="post">
             <b>Keyword <input name=keyword required><br>
             Category 
                 <select name="category">
@@ -27,78 +82,43 @@
             <br>    
             Distance(miles) <input type="text" placeholder="10" name="distance"> from <input type="radio" name="location" value="here" checked onClick="disableLocationTxtBx()"> Here <br>
             <input type="radio" name="location" style="margin-left: 303px;" onClick="enableLocationTxtBx()"> <input placeholder="location" name="location" id="locationTxt" disabled required><br>
-            <input type="submit" value="Search" id="search" onClick="submitForm()" disabled> 
+            <input type="submit" value="Search" id="search" disabled> 
             <input type="button" value="Clear" onClick="reset()" >
             <input type="hidden" name="latitude" id="latitude">
             <input type="hidden" name="longitude" id="longitude" >
         </form>
         </tr>
         </table>
-
-        <!-- PHP -->
-        <?php print_r($_POST); ?><br>
-        <?php 
-            //CONSTANST
-            define("GOOGLE_GEOCODING_API","https://maps.googleapis.com/maps/api/geocode/json?");
-            define("GOOGLE_KEY","AIzaSyDWBtO4XwwiZCwCDr6z2aK8rXZMuO0OTNM");
-            define("GOOGLE_NEARBY_SEARCH","https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
-            function getGeoLocation(){
-                $query = http_build_query([
-                    'address' => $_POST["location"],
-                    'key' => GOOGLE_KEY,                    
-                   ]);
-                $arrContextOptions=array(
-                    "ssl"=>array(
-                        "verify_peer"=>false,
-                        "verify_peer_name"=>false,
-                    ),
-                );  
-                return file_get_contents(GOOGLE_GEOCODING_API.$query, false, stream_context_create($arrContextOptions));
-            }
-
-            function callGooglePlaces(){
-                $query = http_build_query([
-                    'location' => $_POST["latitude"].",".$_POST["longitude"],
-                    'radius' => $_POST["distance"]*1609.34,   //convert to m from miles
-                    'type'=> $_POST["category"],
-                    'keyword'=>$_POST["keyword"],
-                    'key'=>GOOGLE_KEY,
-                   ]);
-                $arrContextOptions=array(
-                    "ssl"=>array(
-                        "verify_peer"=>false,
-                        "verify_peer_name"=>false,
-                    ),
-                );  
-                return file_get_contents(GOOGLE_NEARBY_SEARCH.$query, false, stream_context_create($arrContextOptions));
-            }
-                       
-            if(isset($_POST["location"]) && $_POST["location"]!="here"){
-                //echo("USE google loc");
-                //get geolocation from google
-                $locationJson=json_decode(getGeoLocation(),true);
-                $_POST["latitude"]=($locationJson["results"][0]["geometry"]["location"]["lat"]);
-                $_POST["longitude"]=($locationJson["results"][0]["geometry"]["location"]["lng"]);
-
-            }            
-            $googlePlacesResponse=json_decode(callGooglePlaces());
-            print_r($googlePlacesResponse);
-            print_r($_POST["latitude"]);
-            print_r($_POST["longitude"])
-            
-
-        ?>
+             
 
         <!-- Javascript -->
         <script>
-            //window.onload = function() {
-              //  fetchGeoLocation();                
-            //};
+            window.onload = function() {
+                fetchGeoLocation();                
+            };
             function submitForm(){
                 if(!travelEntertainmentForm.distance.value){
                     travelEntertainmentForm.distance.value=10;
                 }
-                travelEntertainmentForm.submit();
+                var xmlHttpReq=new XMLHttpRequest();
+                xmlHttpReq.onreadystatechange = function() {
+                     if (this.readyState == 4 && this.status == 200) {
+                        //handle response from php
+                        var jsonDoc = (xmlHttpReq.responseText); 
+                        alert(jsonDoc);
+                        parseJSON(jsonDoc);
+                    }
+                };
+                var queryStr="location="+travelEntertainmentForm.location.value
+                                +"&latitude="+travelEntertainmentForm.latitude.value
+                                +"&longitude="+travelEntertainmentForm.longitude.value
+                                +"&distance="+travelEntertainmentForm.distance.value
+                                +"&category="+travelEntertainmentForm.category.value
+                                +"&keyword="+travelEntertainmentForm.keyword.value
+                xmlHttpReq.open("POST","T&E.php",true);
+                xmlHttpReq.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                xmlHttpReq.send(queryStr);
+                
             }
             function fetchGeoLocation(){
                 var xmlHttpReq=new XMLHttpRequest();
@@ -112,8 +132,7 @@
                     }
                 };
                 xmlHttpReq.open("GET","http://ip-api.com/json",true);
-                xmlHttpReq.send();
-                
+                xmlHttpReq.send();                
             }
             function enableLocationTxtBx(){
                 document.getElementById("locationTxt").disabled = false;
@@ -123,6 +142,10 @@
             }
             function reset(){
                 document.getElementById("travelEntertainmentForm").reset(); 
+            }
+            function parseJSON(jsonDoc){
+                var jsonObj=JSON.parse(jsonDoc);
+                alert(jsonObj.results[0].name);
             }
         </script>
     </body>
