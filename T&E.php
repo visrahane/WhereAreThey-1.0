@@ -1,12 +1,60 @@
+
 <?php // print_r($_POST); ?>
 <?php 
+        //CONSTANST
+        //place details api
+        define("GOOGLE_GEOCODING_API","https://maps.googleapis.com/maps/api/geocode/json?");
+        define("GOOGLE_KEY","AIzaSyDWBtO4XwwiZCwCDr6z2aK8rXZMuO0OTNM");
+        define("GOOGLE_NEARBY_SEARCH_API","https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
+        define("GOOGLE_PLACES_DETAILS_API","https://maps.googleapis.com/maps/api/place/details/json?");
+        define("GOOGLE_PLACES_PHOTO_API","https://maps.googleapis.com/maps/api/place/photo?");
+
+        if(isset($_GET['place_id'])){
+            function saveToFile($imageFile,$i){
+                file_put_contents('./myImages/'.$_GET['place_id'].$i.'.png', $imageFile);
+            }
+            function getImages($placeDetailsJSON){
+                //$results=$placeDetailsJSON["results"];
+                for($i=0;$i<5 && $i<count($placeDetailsJSON["result"]["photos"]);$i++){
+                    //print_r($photo);
+                    $query = http_build_query([
+                        'photo_reference' => $placeDetailsJSON["result"]["photos"][$i]["photo_reference"],
+                        'maxheight' => $placeDetailsJSON["result"]["photos"][$i]["height"],
+                        'maxhwidth' => $placeDetailsJSON["result"]["photos"][$i]["width"],
+                        'key' => GOOGLE_KEY,                    
+                    ]);
+                    $image=httpGETCall(GOOGLE_PLACES_PHOTO_API,$query);
+                    saveToFile($image,$i);
+                }
+                
+                //return httpGETCall(GOOGLE_PLACES_DETAILS_API,$query);
+            }
+
+            function getPlaceDetailsAndReviews(){
+                $query = http_build_query([
+                    'place_id' => $_GET["place_id"],
+                    'key' => GOOGLE_KEY,                    
+                   ]);
+                return httpGETCall(GOOGLE_PLACES_DETAILS_API,$query);
+            }
+
+            function httpGETCall($url,$query){
+                $arrContextOptions=array(
+                    "ssl"=>array(
+                        "verify_peer"=>false,
+                        "verify_peer_name"=>false,
+                    ),
+                ); 
+               
+                return file_get_contents($url.$query, false, stream_context_create($arrContextOptions));           
+            }
+            $placeDetailsJSON=json_decode(getPlaceDetailsAndReviews(),true);
+            getImages($placeDetailsJSON);
+        }
+        //Form submit api
         if(isset($_POST['keyword'])){
             //echo("hi");
-            //CONSTANST
-            define("GOOGLE_GEOCODING_API","https://maps.googleapis.com/maps/api/geocode/json?");
-            define("GOOGLE_KEY","AIzaSyDWBtO4XwwiZCwCDr6z2aK8rXZMuO0OTNM");
-            define("GOOGLE_NEARBY_SEARCH","https://maps.googleapis.com/maps/api/place/nearbysearch/json?");
-            
+                  
             function getGeoLocation(){
                 $query = http_build_query([
                     'address' => $_POST["location"],
@@ -35,7 +83,7 @@
                         "verify_peer_name"=>false,
                     ),
                 );  
-                return file_get_contents(GOOGLE_NEARBY_SEARCH.$query, false, stream_context_create($arrContextOptions));
+                return file_get_contents(GOOGLE_NEARBY_SEARCH_API.$query, false, stream_context_create($arrContextOptions));
             }
                        
             if(isset($_POST["location"]) && $_POST["location"]!="here"){
@@ -53,6 +101,7 @@
             exit();      
         }
 ?>
+
 <html>
     <body>
         <!-- PHP -->
@@ -177,7 +226,7 @@
 				    //name
                     var col2=createCol("","td");	
                     var anchorTag=document.createElement("a");
-					anchorTag.setAttribute("href","www.google.com");//call php
+					anchorTag.setAttribute("href","T&E.php?place_id="+resultsArray[i].place_id);//call php
 					anchorTag.appendChild(document.createTextNode(resultsArray[i].name));
                     col2.appendChild(anchorTag);
                     //address
@@ -200,3 +249,4 @@
         </script>
     </body>
 </html>
+
