@@ -50,6 +50,7 @@
             }
             $placeDetailsJSON=json_decode(getPlaceDetailsAndReviews(),true);
             getImages($placeDetailsJSON);
+            echo json_encode($placeDetailsJSON);//return place details json back to js
         }
         //Form submit api
         if(isset($_POST['keyword'])){
@@ -103,13 +104,40 @@
 ?>
 
 <html>
+    <head>
+        <style>
+            #map {
+                height: 320px;
+                width: 80%;
+            }
+            #directionFrame{
+                position: relative;
+                margin-top: -320px;
+                background-color: lightgrey;
+                width: 25%;
+            }
+            #walk,#bike,#drive{
+                margin-left: 3%;
+            }
+            #walk:hover,#bike:hover,#drive:hover{
+                background-color: gray; 
+            }
+            #searchTable{
+                border: 1px solid black;
+                margin-left: auto;
+                margin-right: auto;
+                width: 60%;
+                display:none;
+            }
+        </style>
+    </head>
     <body>
         <!-- PHP -->
         <!-- HTML Form -->    
         <table border="10" style="   margin-left:  auto;    margin-right:  auto; width:45%">
         <tr><td>
         <h1 style="text-align: center;"><i>Travel and Entertainment Search</i></h1><hr>
-        <form name="travelEntertainmentForm" onsubmit="submitForm()" method="post">
+        <form name="travelEntertainmentForm" onsubmit="event.preventDefault();submitForm()" method="post">
             <b>Keyword <input name=keyword required><br>
             Category 
                 <select name="category">
@@ -132,20 +160,33 @@
             Distance(miles) <input type="text" placeholder="10" name="distance"> from <input type="radio" name="location" value="here" checked onClick="disableLocationTxtBx()"> Here <br>
             <input type="radio" name="location" style="margin-left: 303px;" onClick="enableLocationTxtBx()"> <input placeholder="location" name="location" id="locationTxt" disabled required><br>
             <input type="submit" value="Search" id="search" disabled> 
-            <input type="button" value="Clear" onClick="reset()" >
+            <input type="button" value="Clear" onClick="resetValues()" >
             <input type="hidden" name="latitude" id="latitude">
             <input type="hidden" name="longitude" id="longitude" >
         </form>
         </tr>
         </table>
         <br>
-        <br>    
-
-        <!-- Javascript -->
-        <script>
+        <br>
+        <table id="searchTable">
+        </table>  
+        <div id="mapFrame" style="display:none;" >
+            <div id="map" >  </div>
+            <div id="directionFrame" >
+                <div id="walk" onClick="getDirections('WALKING');">Walk There</div>
+                <div id="bike" onClick="getDirections('BICYCLING')" >Bike There</div>
+                <div id="drive" onClick="getDirections('DRIVING')" >Drive There</div>
+            </div>    
+            
+        </div>
+        <!-- Javascript style="display:none;"-->
+        <script> 
             window.onload = function() {
                 fetchGeoLocation();                
-            };
+            };  
+            function getDirections(mode){                
+                calculateAndDisplayRoute(directionsService, directionsDisplay,mode);
+            }                   
             function submitForm(){
                 if(!travelEntertainmentForm.distance.value){
                     travelEntertainmentForm.distance.value=10;
@@ -155,7 +196,7 @@
                      if (this.readyState == 4 && this.status == 200) {
                         //handle response from php
                         var jsonDoc = (xmlHttpReq.responseText); 
-                        alert(jsonDoc);
+                        //alert(jsonDoc);
                         parseJSON(jsonDoc);
                     }
                 };
@@ -180,7 +221,7 @@
                         document.getElementById("longitude").value =(locationJson.lon);
                     }
                 };
-                xmlHttpReq.open("GET","http://ip-api.com/json",true);
+                xmlHttpReq.open("GET","http://ip-api.com/json",false);
                 xmlHttpReq.send();                
             }
             function enableLocationTxtBx(){
@@ -189,18 +230,17 @@
             function disableLocationTxtBx(){
                 document.getElementById("locationTxt").disabled = true;
             }
-            function reset(){
-                document.getElementById("travelEntertainmentForm").reset(); 
+            function resetValues(){
+                travelEntertainmentForm.reset(); 
+                document.getElementById("searchTable").style.display="none";
+                document.getElementById("mapFrame").style.display="none";
             }
             function parseJSON(jsonDoc){
                 var jsonObj=JSON.parse(jsonDoc);
                 //alert(jsonObj.results[0].name);
                 var body=document.body;
-                var table=document.createElement("table");
-                table.style.border="1px solid black";
-                table.style.marginLeft="auto";
-                table.style.marginRight="auto";
-                table.style.width="60%";
+                var table=document.getElementById("searchTable");
+                table.style.display="block";
                 //table rows
                 var row1=document.createElement("tr");
                 
@@ -230,15 +270,29 @@
 					anchorTag.appendChild(document.createTextNode(resultsArray[i].name));
                     col2.appendChild(anchorTag);
                     //address
-					var col3=createCol(resultsArray[i].vicinity,"td");
+					var col3=createCol("","td");//resultsArray[i].vicinity
+                    var divTag = document.createElement("div");
+                    var text=document.createTextNode(resultsArray[i].vicinity);                                 
+                    divTag.onclick = displayMap; 
+                    divTag.value=resultsArray[i].name;
+                    divTag.appendChild(text);
+                    col3.appendChild(divTag);
 
                     var row=document.createElement("tr");
 					row.appendChild(col1);row.appendChild(col2);
-					row.appendChild(col3)
+					row.appendChild(col3);
                     table.appendChild(row);
                 }
                 body.appendChild(table);
+                //initMap();
             }
+            function displayMap(event){  
+                this.appendChild(document.getElementById("mapFrame"));
+                var mapFrame=document.getElementById("mapFrame");
+                mapFrame.style.display="block";
+                mapFrame.value=this.value;                
+            }
+
             function createCol(colText,rowType){
 				var col=document.createElement(rowType);
 				col.style.border="1px solid black";	
@@ -246,7 +300,56 @@
 				col.appendChild(text);
 				return col;
 			}
+
+            function initMap() {
+                directionsService = new google.maps.DirectionsService;
+                directionsDisplay = new google.maps.DirectionsRenderer;
+                if(!document.getElementById("latitude").value){
+                    fetchGeoLocation();
+                }     
+                
+                var latitude=parseFloat(document.getElementById("latitude").value);
+                var longitude=  parseFloat(document.getElementById("longitude").value);    
+                var uluru = {lat:latitude, lng:longitude };
+                var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 4,
+                center: uluru   
+                });
+                var marker = new google.maps.Marker({
+                position: uluru,
+                map: map
+                });
+                directionsDisplay.setMap(map);
+                
+            }
+            function calculateAndDisplayRoute(directionsService, directionsDisplay,selectedMode) {
+      	                      
+                var latitude=parseFloat(document.getElementById("latitude").value);
+                var longitude=  parseFloat(document.getElementById("longitude").value);    
+                var ori = {lat:latitude, lng:longitude };
+                //alert(ori+" "+document.getElementById("mapFrame").value);
+                directionsService.route({
+		        //current loc, can be latlan obj - new google.maps.LatLng(41.850033, -87.6500523);
+                origin: ori,
+		        //get it from row, use placeId for eg
+                destination: document.getElementById("mapFrame").value,
+		        //get travel mode from btn click
+                travelMode: google.maps.TravelMode[selectedMode]
+
+                }, function(response, status) {
+                if (status === 'OK') {
+                directionsDisplay.setDirections(response);
+                } else {
+                window.alert('Directions request failed due to ' + status);
+                }
+                });
+            }
+                        
         </script>
+        <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDWBtO4XwwiZCwCDr6z2aK8rXZMuO0OTNM&callback=initMap">
+        </script>
+
     </body>
 </html>
 
