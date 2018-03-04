@@ -19,8 +19,8 @@
                     //print_r($photo);
                     $query = http_build_query([
                         'photo_reference' => $placeDetailsJSON["result"]["photos"][$i]["photo_reference"],
-                        'maxheight' => $placeDetailsJSON["result"]["photos"][$i]["height"],
-                        'maxhwidth' => $placeDetailsJSON["result"]["photos"][$i]["width"],
+                        'maxheight' => "750",
+                        'maxhwidth' => "750",
                         'key' => GOOGLE_KEY,                    
                     ]);
                     $image=httpGETCall(GOOGLE_PLACES_PHOTO_API,$query);
@@ -49,7 +49,7 @@
                 return file_get_contents($url.$query, false, stream_context_create($arrContextOptions));           
             }
             $placeDetailsJSON=json_decode(getPlaceDetailsAndReviews(),true);
-            //uncomment - getImages($placeDetailsJSON);
+            getImages($placeDetailsJSON);
             header('Content-type: application/json');
             echo json_encode($placeDetailsJSON);//return place details json back to js
             exit();
@@ -337,7 +337,7 @@
                     var col2=createCol("","td");	
                     var anchorTag=document.createElement("a");
                     var placeId=resultsArray[i].place_id;
-                    
+                    console.log(placeId);
                     anchorTag.value=placeId;
 					//anchorTag.setAttribute("href","javascript:callForReviewsAndPhotos();");//call php
                     anchorTag.onclick=callForReviewsAndPhotos;
@@ -383,28 +383,11 @@
                 arrow.innerHTML=text;
             }
 
-            function createReviewsPhotosTable(jsonObj){
-                //display title
-                var placeName=document.getElementById("placeName");
-                placeName.style.display="block";
-                placeName.innerHTML=jsonObj.result.name;
-                
-                displayText("reviewsText",'click to show reviews');
-                displayText("photosText",'click to show photos');
-                //display arrow image
-                var reviewsArrow=document.getElementById("reviewsArrow");
-                reviewsArrow.style.display="block";
-                var photosArrow=document.getElementById("photosArrow");
-                photosArrow.style.display="block";
-                //hide searchTable
-                var searchTable=document.getElementById("searchTable");
-                searchTable.style.display="none";
-                //alert(jsonObj.results[0].name);
-                
+            function createReviewsTable(jsonObj){
                 var table=document.getElementById("reviewsTable");
                 //table.style.display="block";
                 var reviewsArray=jsonObj.result.reviews;
-                console.log(reviewsArray);
+               
                 for(var i=0;i<reviewsArray.length;i++){
                     var row1=document.createElement("tr");
                     
@@ -423,6 +406,49 @@
                     table.appendChild(row1);
                     table.appendChild(row2);
                 }
+            }
+
+            function createPhotosTable(jsonObj){
+                var table=document.getElementById("photosTable");
+                //table.style.display="block";
+                var photosArray=jsonObj.result.photos;
+               
+                for(var i=0;i<photosArray.length && i<5;i++){
+                    var row1=document.createElement("tr");
+                    
+                    var col1=createCol("","td");
+                    var img=document.createElement("img");
+                    img.setAttribute("src","./myImages/"+jsonObj.result.place_id+i+".png");
+                    img.style.height="750px";
+                    img.style.width="750px";
+                    col1.appendChild(img);                   
+                    row1.appendChild(col1);            
+                   
+                    table.appendChild(row1);
+                }
+            }
+
+            function createReviewsPhotosTable(jsonObj){
+                //display title
+                var placeName=document.getElementById("placeName");
+                placeName.style.display="block";
+                placeName.innerHTML=jsonObj.result.name;
+                //display text above arrow
+                displayText("reviewsText",'click to show reviews');
+                displayText("photosText",'click to show photos');
+                //display arrow image
+                var reviewsArrow=document.getElementById("reviewsArrow");
+                reviewsArrow.style.display="block";
+                var photosArrow=document.getElementById("photosArrow");
+                photosArrow.style.display="block";
+                //hide searchTable
+                var searchTable=document.getElementById("searchTable");
+                searchTable.style.display="none";
+                
+                createReviewsTable(jsonObj);
+                createPhotosTable(jsonObj);
+
+                
                 
             }
 
