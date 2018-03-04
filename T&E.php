@@ -49,8 +49,10 @@
                 return file_get_contents($url.$query, false, stream_context_create($arrContextOptions));           
             }
             $placeDetailsJSON=json_decode(getPlaceDetailsAndReviews(),true);
-            getImages($placeDetailsJSON);
+            //uncomment - getImages($placeDetailsJSON);
+            header('Content-type: application/json');
             echo json_encode($placeDetailsJSON);//return place details json back to js
+            exit();
         }
         //Form submit api
         if(isset($_POST['keyword'])){
@@ -106,6 +108,7 @@
 <html>
     <head>
         <style>
+            
             #map {
                 height: 320px;
                 width: 80%;
@@ -128,13 +131,35 @@
                 margin-right: auto;
                 width: 60%;
                 display:none;
+                border-collapse: collapse;
             }
+            #reviewsTable,#formTable,#photosTable{
+                margin-left:  auto;
+                margin-right:  auto; 
+                width:45%;
+                border:1px solid black;
+                border-collapse: collapse;
+            }
+            #reviewsArrow,#photosArrow{
+                margin-left: auto;
+                width: 2%;
+                margin-right:auto;
+                display:none;
+            }
+            #placeName{
+                display:none;
+                text-align:center;
+                margin-top: -20px;
+                margin-bottom: 25px;
+                font-weight: bold;
+            }
+
         </style>
     </head>
     <body>
         <!-- PHP -->
         <!-- HTML Form -->    
-        <table border="10" style="   margin-left:  auto;    margin-right:  auto; width:45%">
+        <table id="formTable">
         <tr><td>
         <h1 style="text-align: center;"><i>Travel and Entertainment Search</i></h1><hr>
         <form name="travelEntertainmentForm" onsubmit="event.preventDefault();submitForm()" method="post">
@@ -169,7 +194,16 @@
         <br>
         <br>
         <table id="searchTable">
-        </table>  
+        </table>
+        
+        <div id="placeName">
+        </div>
+        <div id="reviewsText" style="display:none;text-align:center"></div>
+        <img id="reviewsArrow" src="websiteImages/arrow_down.png" alt="0" onClick="toggleArrow('reviewsArrow','reviewsTable')"></div>
+        <table id="reviewsTable" style="display:none;" ></table>
+        <div id="photosText" style="display:none;text-align:center"></div>
+        <img id="photosArrow" src="websiteImages/arrow_down.png" alt="0" onClick="toggleArrow('photosArrow','photosTable')"></div>
+        <table id="photosTable" style="display:none;" ></table>
         <div id="mapFrame" style="display:none;" >
             <div id="map" >  </div>
             <div id="directionFrame" >
@@ -184,6 +218,24 @@
             window.onload = function() {
                 fetchGeoLocation();                
             };  
+
+            function toggleArrow(arrowName,arrowTable){
+                var img=document.getElementById(arrowName);
+                console.log(img.alt);
+                if(img.alt==0)//isDown?
+                {
+                    img.src="websiteImages/arrow_up.png";
+                    img.alt="1";
+                    //display table
+                    document.getElementById(arrowTable).style.display="block";                    
+                }else{
+                    img.src="websiteImages/arrow_down.png";
+                    img.alt="0";
+                    document.getElementById(arrowTable).style.display="none";
+                }           
+            
+            }
+
             function getDirections(mode){                
                 calculateAndDisplayRoute(directionsService, directionsDisplay,mode);
             }                   
@@ -230,10 +282,28 @@
             function disableLocationTxtBx(){
                 document.getElementById("locationTxt").disabled = true;
             }
+            function clearTable( tableName){
+                var table=document.getElementById(tableName);
+                table.innerHTML="";
+                table.style.display="none";
+            }
             function resetValues(){
                 travelEntertainmentForm.reset(); 
-                document.getElementById("searchTable").style.display="none";
+                clearTable("searchTable");
+                clearTable("reviewsTable");               
                 document.getElementById("mapFrame").style.display="none";
+                document.getElementById("placeName").style.display="none";
+                document.getElementById("reviewsText").style.display="none";
+                document.getElementById("photosText").style.display="none";
+                resetArrowImg("reviewsArrow");
+                resetArrowImg("photosArrow");
+            }
+
+            function resetArrowImg(arrowName){
+                var arrow= document.getElementById(arrowName);
+                arrow.style.display="none";
+                arrow.src="websiteImages/arrow_down.png";
+                arrow.alt="0";                
             }
             function parseJSON(jsonDoc){
                 var jsonObj=JSON.parse(jsonDoc);
@@ -257,7 +327,7 @@
                     row1.appendChild(row1col1);row1.appendChild(row1col2);row1.appendChild(row1col3);                    
                 }
                 table.appendChild(row1);
-                for(var i=0;i<resultsArray.length;i++){
+                for(var i=0;i<resultsArray.length && i<5;i++){
                     //icon
                     var col1=createCol("","td");
                     var imgTag=document.createElement("img");
@@ -266,7 +336,11 @@
 				    //name
                     var col2=createCol("","td");	
                     var anchorTag=document.createElement("a");
-					anchorTag.setAttribute("href","T&E.php?place_id="+resultsArray[i].place_id);//call php
+                    var placeId=resultsArray[i].place_id;
+                    
+                    anchorTag.value=placeId;
+					//anchorTag.setAttribute("href","javascript:callForReviewsAndPhotos();");//call php
+                    anchorTag.onclick=callForReviewsAndPhotos;
 					anchorTag.appendChild(document.createTextNode(resultsArray[i].name));
                     col2.appendChild(anchorTag);
                     //address
@@ -283,9 +357,75 @@
 					row.appendChild(col3);
                     table.appendChild(row);
                 }
-                body.appendChild(table);
+                //body.appendChild(table);
                 //initMap();
             }
+
+            function callForReviewsAndPhotos(){
+                //alert(this.value);
+                var placeId=this.value;
+                var xmlHttpReq=new XMLHttpRequest();
+                xmlHttpReq.onreadystatechange = function() {
+                     if (this.readyState == 4 && this.status == 200) {    
+                        //alert(xmlHttpReq.responseText);                                           
+                        var locationJson=JSON.parse(xmlHttpReq.responseText);   
+                        //create reviews and photos table 
+                        createReviewsPhotosTable(locationJson);
+                    }
+                };
+                xmlHttpReq.open("GET","T&E.php?place_id="+placeId,true);
+                xmlHttpReq.send();  
+            }
+
+            function displayText(id,text){
+                var arrow=document.getElementById(id);
+                arrow.style.display="block";
+                arrow.innerHTML=text;
+            }
+
+            function createReviewsPhotosTable(jsonObj){
+                //display title
+                var placeName=document.getElementById("placeName");
+                placeName.style.display="block";
+                placeName.innerHTML=jsonObj.result.name;
+                
+                displayText("reviewsText",'click to show reviews');
+                displayText("photosText",'click to show photos');
+                //display arrow image
+                var reviewsArrow=document.getElementById("reviewsArrow");
+                reviewsArrow.style.display="block";
+                var photosArrow=document.getElementById("photosArrow");
+                photosArrow.style.display="block";
+                //hide searchTable
+                var searchTable=document.getElementById("searchTable");
+                searchTable.style.display="none";
+                //alert(jsonObj.results[0].name);
+                
+                var table=document.getElementById("reviewsTable");
+                //table.style.display="block";
+                var reviewsArray=jsonObj.result.reviews;
+                console.log(reviewsArray);
+                for(var i=0;i<reviewsArray.length;i++){
+                    var row1=document.createElement("tr");
+                    
+                    var col1=createCol("","th");
+                    var img=document.createElement("img");
+                    img.setAttribute("src",reviewsArray[i].profile_photo_url);
+                    img.style.height="28px";
+                    col1.appendChild(img);
+                    col1.appendChild(document.createTextNode(reviewsArray[i].author_name));
+                    row1.appendChild(col1);
+                   
+                    var row2=document.createElement("tr");
+                    var col2=createCol(reviewsArray[i].text,"td");                    
+                    row2.appendChild(col2);
+
+                    table.appendChild(row1);
+                    table.appendChild(row2);
+                }
+                
+            }
+
             function displayMap(event){  
                 this.appendChild(document.getElementById("mapFrame"));
                 var mapFrame=document.getElementById("mapFrame");
