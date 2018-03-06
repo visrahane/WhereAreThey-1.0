@@ -118,7 +118,7 @@
                 position: relative;
                 margin-top: -320px;
                 background-color: lightgrey;
-                width: 30%;
+                width: 20%;
             }
             #walk,#bike,#drive{
                 margin-left: 3%;
@@ -249,8 +249,8 @@
                      if (this.readyState == 4 && this.status == 200) {
                         //handle response from php
                         var jsonDoc = (xmlHttpReq.responseText); 
-                        //alert(jsonDoc);
-                        parseJSON(jsonDoc);
+                        //console.log(jsonDoc);
+                        createSearchTable(jsonDoc);
                     }
                 };
                 var location=document.getElementById("locationTxt").value;
@@ -287,6 +287,7 @@
             }
             function disableLocationTxtBx(){
                 document.getElementById("locationTxt").disabled = true;
+                document.getElementById("locationTxt").placeholder = "Location";
             }
             function clearTable( tableName){
                 var table=document.getElementById(tableName);
@@ -319,7 +320,7 @@
                 arrow.src="websiteImages/arrow_down.png";
                 arrow.alt="0";                
             }
-            function parseJSON(jsonDoc){
+            function createSearchTable(jsonDoc){
                 var jsonObj=JSON.parse(jsonDoc);
                 //alert(jsonObj.results[0].name);
                 var body=document.body;
@@ -331,7 +332,7 @@
                 var resultsArray=jsonObj.results;
                 if(resultsArray.length==0){
                     row1.style.textAlign="center";
-                    row1col1=createCol("No records has been found","td"); 
+                    row1col1=createCol("No Records has been found","td"); 
                     row1.appendChild(row1col1);
                 }
                 else{
@@ -363,7 +364,8 @@
                     var pTag = document.createElement("p");
                     var text=document.createTextNode(resultsArray[i].vicinity);                                 
                     pTag.onclick = displayMap; 
-                    pTag.value=resultsArray[i].name;
+                    
+                    pTag.value=resultsArray[i].name+","+resultsArray[i].geometry.location.lat+","+resultsArray[i].geometry.location.lng;
                     pTag.appendChild(text);
                     divTag.appendChild(pTag);
                     col3.appendChild(divTag);
@@ -407,7 +409,7 @@
                 if (typeof reviewsArray === "undefined" ){
                     var row1=document.createElement("tr");   
                     row1.style.textAlign="center";                 
-                    var col1=createCol("No records has been found","td");
+                    var col1=createCol("No Reviews Found","th");
                     row1.appendChild(col1);                  
                     table.appendChild(row1);
                 }else{
@@ -442,7 +444,7 @@
                 if (typeof photosArray === 'undefined'){
                     var row1=document.createElement("tr");   
                     row1.style.textAlign="center";                 
-                    var col1=createCol("No records has been found","td");
+                    var col1=createCol("No Photos Found","th");
                     row1.appendChild(col1);                  
                     table.appendChild(row1);
                 }else{
@@ -489,12 +491,15 @@
             }
 
             function displayMap(event){   
+                
                 var mapFrame=document.getElementById("mapFrame");                  
                 this.parentNode.appendChild(mapFrame);               
                 //console.log(mapFrame.value=this.value );
                 if(mapFrame.style.display==="none"){
+                    var info=this.value.split(",");
                     mapFrame.style.display="block";
-                    mapFrame.value=this.value; 
+                    initMap(info[1],info[2]);
+                    mapFrame.value=info[0]; 
                 }else{
                     mapFrame.style.display="none";
                     //mapFrame.style.display="block";
@@ -510,18 +515,13 @@
 				return col;
 			}
 
-            function initMap() {
+            function initMap(latitude,longitude) {
                 directionsService = new google.maps.DirectionsService;
                 directionsDisplay = new google.maps.DirectionsRenderer;
-                if(!document.getElementById("latitude").value){
-                    fetchGeoLocation();
-                }     
+                uluru = {lat: parseFloat(latitude), lng:parseFloat(longitude) };                            
                 
-                var latitude=parseFloat(document.getElementById("latitude").value);
-                var longitude=  parseFloat(document.getElementById("longitude").value);    
-                var uluru = {lat:latitude, lng:longitude };
                 var map = new google.maps.Map(document.getElementById('map'), {
-                zoom: 4,
+                zoom: 15,
                 center: uluru   
                 });
                 var marker = new google.maps.Marker({
@@ -532,10 +532,15 @@
                 
             }
             function calculateAndDisplayRoute(directionsService, directionsDisplay,selectedMode) {
-      	                      
-                var latitude=parseFloat(document.getElementById("latitude").value);
-                var longitude=  parseFloat(document.getElementById("longitude").value);    
-                var ori = {lat:latitude, lng:longitude };
+                if(!document.getElementById("locationTxt").disabled){
+                    ori = document.getElementById("locationTxt").value;
+                }else{
+                    var latitude=parseFloat(document.getElementById("latitude").value);
+                    var longitude=  parseFloat(document.getElementById("longitude").value);    
+                    ori = {lat:latitude, lng:longitude };
+                }                
+                    
+                
                 //console.log(ori+" "+document.getElementById("mapFrame").value);
                 directionsService.route({
 		        //current loc, can be latlan obj - new google.maps.LatLng(41.850033, -87.6500523);
@@ -556,7 +561,7 @@
                         
         </script>
         <script async defer
-            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDWBtO4XwwiZCwCDr6z2aK8rXZMuO0OTNM&callback=initMap">
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDWBtO4XwwiZCwCDr6z2aK8rXZMuO0OTNM">
         </script>
 
     </body>
