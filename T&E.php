@@ -365,7 +365,7 @@
                     var text=document.createTextNode(resultsArray[i].vicinity);                                 
                     pTag.onclick = displayMap; 
                     
-                    pTag.value=resultsArray[i].name+","+resultsArray[i].geometry.location.lat+","+resultsArray[i].geometry.location.lng;
+                    pTag.value=resultsArray[i].place_id+","+resultsArray[i].geometry.location.lat+","+resultsArray[i].geometry.location.lng;
                     pTag.appendChild(text);
                     divTag.appendChild(pTag);
                     col3.appendChild(divTag);
@@ -499,7 +499,7 @@
                     var info=this.value.split(",");
                     mapFrame.style.display="block";
                     initMap(info[1],info[2]);
-                    mapFrame.value=info[0]; 
+                    mapFrame.value=info; 
                 }else{
                     mapFrame.style.display="none";
                     //mapFrame.style.display="block";
@@ -524,7 +524,7 @@
                 zoom: 15,
                 center: uluru   
                 });
-                var marker = new google.maps.Marker({
+                 marker = new google.maps.Marker({
                 position: uluru,
                 map: map
                 });
@@ -532,6 +532,7 @@
                 
             }
             function calculateAndDisplayRoute(directionsService, directionsDisplay,selectedMode) {
+                marker.setMap(null);
                 if(!document.getElementById("locationTxt").disabled){
                     ori = document.getElementById("locationTxt").value;
                 }else{
@@ -540,13 +541,13 @@
                     ori = {lat:latitude, lng:longitude };
                 }                
                     
-                
+                var info=document.getElementById("mapFrame").value;
                 //console.log(ori+" "+document.getElementById("mapFrame").value);
                 directionsService.route({
 		        //current loc, can be latlan obj - new google.maps.LatLng(41.850033, -87.6500523);
                 origin: ori,
 		        //get it from row, use placeId for eg
-                destination: document.getElementById("mapFrame").value,
+                destination: {lat:parseFloat(info[1]), lng:parseFloat(info[2])},
 		        //get travel mode from btn click
                 travelMode: google.maps.TravelMode[selectedMode]
 
