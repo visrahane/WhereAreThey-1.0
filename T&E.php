@@ -173,14 +173,14 @@
                     <option value="cafe">Cafe</option>
                     <option value="bakery">Bakery</option>
                     <option value="restaurant">Restaurant</option>
-                    <option value="beautySalon">Beauty Salon</option>
+                    <option value="beauty_salon">Beauty Salon</option>
                     <option value="casino">Casino</option>
-                    <option value="movieTheater">Movie Theater</option>
+                    <option value="movie_theater">Movie Theater</option>
                     <option value="lodging">Lodging</option>
                     <option value="airport">Airport</option>
-                    <option value="trainStation">Train Station</option>
-                    <option value="subwayStation">Subway Station</option>
-                    <option value="busStation">Bus Station</option>
+                    <option value="train_station">Train Station</option>
+                    <option value="subway_station">Subway Station</option>
+                    <option value="bus_station">Bus Station</option>
                 </select>    
             <br>    
             Distance(miles) <input type="text" placeholder="10" name="distance"> from <input type="radio" name="location" value="here" checked onClick="disableLocationTxtBx()"> Here <br>
