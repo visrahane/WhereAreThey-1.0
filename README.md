@@ -8,9 +8,6 @@ Moreover, you can get directions to the place of your interest.
 Q) How can WhereAreThey assist me?<br>
 Find out <a href="https://www.youtube.com/watch?v=1uffTsR2jLk&feature=youtu.be">here</a>
 
-Q) Can I try it? <br>
-Sure, <a href="http://cs-server.usc.edu:39016/T&E.php">go ahead</a> 
-
 Technical details:
 
 <i>Backend</i>: 
